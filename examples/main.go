@@ -7,7 +7,10 @@ import (
 )
 
 func main() {
-	client := pulp.NewClient("pulp-lab-11", nil)
+	apiUser := "admin"
+	apiPasswd := "admin"
+	apiEndpoint := "pulp-lab-11"
+	client := pulp.NewClient(apiEndpoint, apiUser, apiPasswd, nil)
 
 	// List all repos
 	repos, _, err := client.Repositories.ListRepositories()
@@ -31,11 +34,10 @@ func main() {
 	}
 
 	taskId := "bac41a2b-0830-4038-8bb9-2d917624b888"
-	r, _, err := client.Tasks.GetTask(taskId)
-	_ = r
-	fmt.Printf("%v\n", r)
-	if err != nil {
-		log.Fatal(err)
+	task, _, terr := client.Tasks.GetTask(taskId)
+	fmt.Printf("%v\n", task)
+	if terr != nil {
+		log.Fatal(terr)
 	}
 
 	_ = "breakpoint"

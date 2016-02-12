@@ -30,6 +30,16 @@ type Repository struct {
 	Importers []*Importer `json:"importers"`
 }
 
+type Importer struct {
+	Id             string          `json:"id"`
+	ImporterConfig *ImporterConfig `json:"config"`
+}
+
+type ImporterConfig struct {
+	Feed          string `json:"feed"`
+	RemoveMissing bool   `json:"remove_missing"`
+}
+
 func (r Repository) String() string {
 	return Stringify(r)
 }
@@ -72,12 +82,19 @@ func (s *RepositoriesService) GetRepository(
 	return r, resp, err
 }
 
-type Importer struct {
-	Id             string          `json:"id"`
-	ImporterConfig *ImporterConfig `json:"config"`
-}
+func (s *RepositoriesService) SyncRepository(repository string) (*Repository, *Response, error) {
+	u := fmt.Sprintf("repositories/%s/actions/sync", repository)
 
-type ImporterConfig struct {
-	Feed          string `json:"feed"`
-	RemoveMissing bool   `json:"remove_missing"`
+	req, err := s.client.NewRequest("POST", u, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	r := new(Repository)
+	resp, err := s.client.Do(req, r)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return r, resp, err
 }

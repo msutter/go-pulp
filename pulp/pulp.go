@@ -24,18 +24,16 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strconv"
+	// "strconv"
 	"strings"
 
 	"github.com/google/go-querystring/query"
 )
 
 const (
-	libraryVersion  = "0.1"
-	apiVersion      = "v2"
-	userAgent       = "go-pulp/" + libraryVersion
-	defaultUser     = "admin"
-	defaultPassword = "admin"
+	libraryVersion = "0.1"
+	apiVersion     = "v2"
+	userAgent      = "go-pulp/" + libraryVersion
 )
 
 type Client struct {
@@ -44,6 +42,8 @@ type Client struct {
 	ssl       bool
 	baseURL   *url.URL
 	UserAgent string
+	apiUser   string
+	apiPasswd string
 
 	// Services used for talking to different parts of the Pulp API.
 	Repositories *RepositoriesService
@@ -55,12 +55,17 @@ type ListOptions struct {
 	PerPage int `url:"per_page,omitempty" json:"per_page,omitempty"`
 }
 
-func NewClient(host string, httpClient *http.Client) *Client {
+func NewClient(host string, User string, Passwd string, httpClient *http.Client) *Client {
 	if httpClient == nil {
 		httpClient = http.DefaultClient
 	}
 
-	c := &Client{client: httpClient, UserAgent: userAgent}
+	c := &Client{
+		client:    httpClient,
+		UserAgent: userAgent,
+		apiUser:   User,
+		apiPasswd: Passwd,
+	}
 
 	if err := c.SetHost(host); err != nil {
 		panic(err)
@@ -151,7 +156,7 @@ func (c *Client) NewRequest(method, path string, opt interface{}) (*http.Request
 	}
 
 	req.Header.Set("Accept", "application/json")
-	req.SetBasicAuth(defaultUser, defaultPassword)
+	req.SetBasicAuth(c.apiUser, c.apiPasswd)
 	if c.UserAgent != "" {
 		req.Header.Set("User-Agent", c.UserAgent)
 	}
@@ -161,50 +166,7 @@ func (c *Client) NewRequest(method, path string, opt interface{}) (*http.Request
 
 func newResponse(r *http.Response) *Response {
 	response := &Response{Response: r}
-	response.populatePageValues()
 	return response
-}
-
-func (r *Response) populatePageValues() {
-	if links, ok := r.Response.Header["Link"]; ok && len(links) > 0 {
-		for _, link := range strings.Split(links[0], ",") {
-			segments := strings.Split(strings.TrimSpace(link), ";")
-
-			// link must at least have href and rel
-			if len(segments) < 2 {
-				continue
-			}
-
-			// ensure href is properly formatted
-			if !strings.HasPrefix(segments[0], "<") || !strings.HasSuffix(segments[0], ">") {
-				continue
-			}
-
-			// try to pull out page parameter
-			url, err := url.Parse(segments[0][1 : len(segments[0])-1])
-			if err != nil {
-				continue
-			}
-			page := url.Query().Get("page")
-			if page == "" {
-				continue
-			}
-
-			for _, segment := range segments[1:] {
-				switch strings.TrimSpace(segment) {
-				case `rel="next"`:
-					r.NextPage, _ = strconv.Atoi(page)
-				case `rel="prev"`:
-					r.PrevPage, _ = strconv.Atoi(page)
-				case `rel="first"`:
-					r.FirstPage, _ = strconv.Atoi(page)
-				case `rel="last"`:
-					r.LastPage, _ = strconv.Atoi(page)
-				}
-
-			}
-		}
-	}
 }
 
 func (c *Client) Do(req *http.Request, v interface{}) (*Response, error) {
@@ -232,40 +194,47 @@ func (c *Client) Do(req *http.Request, v interface{}) (*Response, error) {
 	return response, err
 }
 
-func parseID(id interface{}) (string, error) {
-	switch v := id.(type) {
-	case int:
-		return strconv.Itoa(v), nil
-	case string:
-		return v, nil
-	default:
-		return "", fmt.Errorf("invalid ID type %#v, the ID must be an int or a string", id)
-	}
-}
-
-type ErrorResponse struct {
-	Response *http.Response // HTTP response that caused this error
-	Message  string         `json:"message"` // error message
-	Errors   []Error        `json:"errors"`  // more detail on individual errors
-}
-
 func (r *ErrorResponse) Error() string {
 	path, _ := url.QueryUnescape(r.Response.Request.URL.Opaque)
 	ru := fmt.Sprintf("%s://%s%s", r.Response.Request.URL.Scheme, r.Response.Request.URL.Host, path)
 
-	return fmt.Sprintf("%v %s: %d %v %+v",
-		r.Response.Request.Method, ru, r.Response.StatusCode, r.Message, r.Errors)
+	return fmt.Sprintf("%v %s: %d %v",
+		r.Response.Request.Method, ru, r.Response.StatusCode, r.Message)
 }
 
+// Pulp Api docs:
+// http://pulp.readthedocs.org/en/latest/dev-guide/conventions/exceptions.html#exception-handling
+type ErrorResponse struct {
+	Response   *http.Response // HTTP response that caused this error
+	ResourceID string         `json:"resource_id"`
+	Message    string         `json:"error_message"` // error message
+	Errors     *Error         `json:"error"`         // more detail on individual errors
+
+}
+
+// Pulp Api docs:
+// http://pulp.readthedocs.org/en/latest/dev-guide/conventions/exceptions.html#error-details
 type Error struct {
-	Resource string `json:"resource"` // resource on which the error occurred
-	Field    string `json:"field"`    // field on which the error occurred
-	Code     string `json:"code"`     // validation error code
+	Code        string          `json:"code"`
+	Description string          `json:"description"`
+	Data        json.RawMessage `json:"data"`
+	Sub_errors  json.RawMessage `json:"sub_errors"`
+}
+
+// Pulp Api docs:
+// http://pulp.readthedocs.org/en/latest/dev-guide/conventions/sync-v-async.html#call-report
+type CallReport struct {
+	Result       string `json:"result"`
+	Error        *Error `json:"error"`
+	SpawnedTasks struct {
+		Href   string `json:"_href"`
+		TaskId string `json:"task_id"`
+	} `json:"spawned_tasks"`
 }
 
 func (e *Error) Error() string {
-	return fmt.Sprintf("%v error caused by %v field on %v resource",
-		e.Code, e.Field, e.Resource)
+	return fmt.Sprintf("%v error: %v",
+		e.Code, e.Description)
 }
 
 func CheckResponse(r *http.Response) error {

@@ -37,7 +37,7 @@ type Task struct {
 
 	Result struct {
 		Details struct {
-			Content *Content
+			Content *Content `json:"content"`
 		} `json:"details"`
 	} `json:"result"`
 }
