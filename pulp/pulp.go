@@ -114,11 +114,6 @@ func (c *Client) SetBaseURL(urlStr string) error {
 
 type Response struct {
 	*http.Response
-
-	NextPage  int
-	PrevPage  int
-	FirstPage int
-	LastPage  int
 }
 
 func (c *Client) NewRequest(method, path string, opt interface{}) (*http.Request, error) {
@@ -142,7 +137,7 @@ func (c *Client) NewRequest(method, path string, opt interface{}) (*http.Request
 		Host:       u.Host,
 	}
 
-	if method == "POST" || method == "PUT" {
+	if opt != nil && (method == "POST" || method == "PUT") {
 		bodyBytes, err := json.Marshal(opt)
 		if err != nil {
 			return nil, err
@@ -205,10 +200,10 @@ func (r *ErrorResponse) Error() string {
 // Pulp Api docs:
 // http://pulp.readthedocs.org/en/latest/dev-guide/conventions/exceptions.html#exception-handling
 type ErrorResponse struct {
-	Response   *http.Response // HTTP response that caused this error
-	ResourceID string         `json:"resource_id"`
-	Message    string         `json:"error_message"` // error message
-	Errors     *Error         `json:"error"`         // more detail on individual errors
+	Response     *http.Response // HTTP response that caused this error
+	ResourceID   string         `json:"resource_id"`
+	Message      string         `json:"error_message"` // error message
+	ErrorDetails *Error         `json:"error"`         // more detail on individual errors
 
 }
 
@@ -226,7 +221,7 @@ type Error struct {
 type CallReport struct {
 	Result       string `json:"result"`
 	Error        *Error `json:"error"`
-	SpawnedTasks struct {
+	SpawnedTasks []struct {
 		Href   string `json:"_href"`
 		TaskId string `json:"task_id"`
 	} `json:"spawned_tasks"`

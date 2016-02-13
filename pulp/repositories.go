@@ -59,13 +59,13 @@ func (s *RepositoriesService) ListRepositories() ([]*Repository, *Response, erro
 	return r, resp, err
 }
 
-type CreateRepositoryOptions struct {
+type GetRepositoryOptions struct {
 	Details bool `url:"details,omitempty" json:"details,omitempty"`
 }
 
 func (s *RepositoriesService) GetRepository(
 	repository string,
-	opt *CreateRepositoryOptions) (*Repository, *Response, error) {
+	opt *GetRepositoryOptions) (*Repository, *Response, error) {
 	u := fmt.Sprintf("repositories/%s/", repository)
 
 	req, err := s.client.NewRequest("GET", u, opt)
@@ -74,7 +74,7 @@ func (s *RepositoriesService) GetRepository(
 	}
 
 	r := new(Repository)
-	resp, err := s.client.Do(req, r)
+	resp, err := s.client.Do(req, &r)
 	if err != nil {
 		return nil, resp, err
 	}
@@ -82,19 +82,19 @@ func (s *RepositoriesService) GetRepository(
 	return r, resp, err
 }
 
-func (s *RepositoriesService) SyncRepository(repository string) (*Repository, *Response, error) {
-	u := fmt.Sprintf("repositories/%s/actions/sync", repository)
+func (s *RepositoriesService) SyncRepository(repository string) (*CallReport, *Response, error) {
+	u := fmt.Sprintf("repositories/%s/actions/sync/", repository)
 
 	req, err := s.client.NewRequest("POST", u, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	r := new(Repository)
-	resp, err := s.client.Do(req, r)
+	cr := new(CallReport)
+	resp, err := s.client.Do(req, &cr)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return r, resp, err
+	return cr, resp, err
 }

@@ -28,10 +28,15 @@ type Task struct {
 	Id             string `json:"task_id"`
 	StartTime      string `json:"start_time"`
 	FinishTime     string `json:"finish_time"`
-	State          string `json:"finish_time"`
+	State          string `json:"state"`
+	Error          *Error `json:"error"`
 	ProgressReport struct {
 		YumImporter struct {
-			Content *Content
+			Content  *Content
+			Metadata struct {
+				State string
+				Error string
+			}
 		} `json:"yum_importer"`
 	} `json:"progress_report"`
 
