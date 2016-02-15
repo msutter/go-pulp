@@ -40,7 +40,7 @@ func main() {
 	state := "init"
 	for state != "finished" {
 		task, _, terr := client.Tasks.GetTask(syncTaskId)
-		fmt.Printf("%v\n", task.RenderProgressStatus())
+		fmt.Printf("%v\n", task.State)
 
 		state = task.State
 		time.Sleep(500 * time.Millisecond)
