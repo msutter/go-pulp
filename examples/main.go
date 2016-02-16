@@ -13,7 +13,7 @@ func main() {
 	apiEndpoint := "pulp-lab-11"
 
 	// create the client
-	client := pulp.NewClient(apiEndpoint, apiUser, apiPasswd, nil)
+	client, err := pulp.NewClient(apiEndpoint, apiUser, apiPasswd, nil)
 
 	// repository options
 	ro := &pulp.GetRepositoryOptions{

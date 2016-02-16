@@ -20,14 +20,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/google/go-querystring/query"
+	"github.com/mreiferson/go-httpclient"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	// "strconv"
 	"strings"
-
-	"github.com/google/go-querystring/query"
+	"time"
 )
 
 const (
@@ -37,8 +37,7 @@ const (
 )
 
 type Client struct {
-	client *http.Client
-
+	client    *http.Client
 	ssl       bool
 	baseURL   *url.URL
 	UserAgent string
@@ -55,26 +54,34 @@ type ListOptions struct {
 	PerPage int `url:"per_page,omitempty" json:"per_page,omitempty"`
 }
 
-func NewClient(host string, User string, Passwd string, httpClient *http.Client) *Client {
+func NewClient(host string, User string, Passwd string, httpClient *http.Client) (client *Client, err error) {
 	if httpClient == nil {
 		httpClient = http.DefaultClient
 	}
 
-	c := &Client{
+	transport := &httpclient.Transport{
+		ConnectTimeout:        1 * time.Second,
+		ResponseHeaderTimeout: 5 * time.Second,
+		RequestTimeout:        10 * time.Second,
+	}
+	defer transport.Close()
+	httpClient.Transport = transport
+
+	client = &Client{
 		client:    httpClient,
 		UserAgent: userAgent,
 		apiUser:   User,
 		apiPasswd: Passwd,
 	}
 
-	if err := c.SetHost(host); err != nil {
-		panic(err)
+	if err := client.SetHost(host); err != nil {
+		return nil, err
 	}
 
-	c.Repositories = &RepositoriesService{client: c}
-	c.Tasks = &TasksService{client: c}
+	client.Repositories = &RepositoriesService{client: client}
+	client.Tasks = &TasksService{client: client}
 
-	return c
+	return
 }
 
 func (c *Client) SetHost(hostStr string) error {

@@ -76,6 +76,7 @@ func (s *RepositoriesService) GetRepository(
 	r := new(Repository)
 	resp, err := s.client.Do(req, &r)
 	if err != nil {
+		_ = "breakpoint"
 		return nil, resp, err
 	}
 
