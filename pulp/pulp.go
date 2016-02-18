@@ -61,8 +61,8 @@ func NewClient(host string, User string, Passwd string, httpClient *http.Client)
 
 	transport := &httpclient.Transport{
 		ConnectTimeout:        1 * time.Second,
-		ResponseHeaderTimeout: 5 * time.Second,
-		RequestTimeout:        10 * time.Second,
+		ResponseHeaderTimeout: 10 * time.Second,
+		RequestTimeout:        30 * time.Second,
 	}
 	defer transport.Close()
 	httpClient.Transport = transport

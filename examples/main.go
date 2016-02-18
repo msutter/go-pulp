@@ -10,7 +10,7 @@ import (
 func main() {
 	apiUser := "admin"
 	apiPasswd := "admin"
-	apiEndpoint := "pulp-lab-11"
+	apiEndpoint := "pulp-lab-111"
 
 	// create the client
 	client, err := pulp.NewClient(apiEndpoint, apiUser, apiPasswd, nil)
