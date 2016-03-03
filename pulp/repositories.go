@@ -44,8 +44,9 @@ func (r Repository) String() string {
 	return Stringify(r)
 }
 
-func (s *RepositoriesService) ListRepositories() ([]*Repository, *Response, error) {
-	req, err := s.client.NewRequest("GET", "repositories/", nil)
+func (s *RepositoriesService) ListRepositories(opt *GetRepositoryOptions) ([]*Repository, *Response, error) {
+
+	req, err := s.client.NewRequest("GET", "repositories/", opt)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -76,7 +77,6 @@ func (s *RepositoriesService) GetRepository(
 	r := new(Repository)
 	resp, err := s.client.Do(req, &r)
 	if err != nil {
-		_ = "breakpoint"
 		return nil, resp, err
 	}
 
@@ -93,6 +93,7 @@ func (s *RepositoriesService) SyncRepository(repository string) (*CallReport, *R
 
 	cr := new(CallReport)
 	resp, err := s.client.Do(req, &cr)
+
 	if err != nil {
 		return nil, resp, err
 	}

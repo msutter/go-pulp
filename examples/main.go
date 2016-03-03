@@ -25,7 +25,9 @@ func main() {
 	// get the repo
 	r, _, err := client.Repositories.GetRepository(repo, ro)
 	fmt.Printf("%v\n", r)
+	_ = "breakpoint"
 	if err != nil {
+		// fmt.Println(err.Error())
 		log.Fatal(err)
 	}
 

@@ -196,14 +196,6 @@ func (c *Client) Do(req *http.Request, v interface{}) (*Response, error) {
 	return response, err
 }
 
-func (r *ErrorResponse) Error() string {
-	path, _ := url.QueryUnescape(r.Response.Request.URL.Opaque)
-	ru := fmt.Sprintf("%s://%s%s", r.Response.Request.URL.Scheme, r.Response.Request.URL.Host, path)
-
-	return fmt.Sprintf("%v %s: %d %v",
-		r.Response.Request.Method, ru, r.Response.StatusCode, r.Message)
-}
-
 // Pulp Api docs:
 // http://pulp.readthedocs.org/en/latest/dev-guide/conventions/exceptions.html#exception-handling
 type ErrorResponse struct {
@@ -212,6 +204,12 @@ type ErrorResponse struct {
 	Message      string         `json:"error_message"` // error message
 	ErrorDetails *Error         `json:"error"`         // more detail on individual errors
 
+}
+
+func (r *ErrorResponse) Error() string {
+	path, _ := url.QueryUnescape(r.Response.Request.URL.Opaque)
+	ru := fmt.Sprintf("%s://%s%s", r.Response.Request.URL.Scheme, r.Response.Request.URL.Host, path)
+	return fmt.Sprintf("%v %s: %d %v", r.Response.Request.Method, ru, r.Response.StatusCode, r.Message)
 }
 
 // Pulp Api docs:
