@@ -38,7 +38,7 @@ const (
 
 type Client struct {
 	client    *http.Client
-	ssl       bool
+	SSL       bool
 	baseURL   *url.URL
 	UserAgent string
 	apiUser   string
@@ -88,7 +88,7 @@ func (c *Client) SetHost(hostStr string) error {
 	var err error
 
 	p := "http"
-	if c.ssl {
+	if c.SSL {
 		p = "https"
 	}
 
