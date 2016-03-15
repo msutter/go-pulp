@@ -11,10 +11,13 @@ import (
 func main() {
 	apiUser := "admin"
 	apiPasswd := "admin"
-	apiEndpoint := "pulp-lab-11.test"
+	apiEndpoint := "pulp-lab-1.test"
+
+	DisableSsl := false
+	SkipSslVerify := true
 
 	// create the client
-	client, err := pulp.NewClient(apiEndpoint, apiUser, apiPasswd, true, true, nil)
+	client, err := pulp.NewClient(apiEndpoint, apiUser, apiPasswd, DisableSsl, SkipSslVerify, nil)
 
 	// repository options
 	ro := &pulp.GetRepositoryOptions{

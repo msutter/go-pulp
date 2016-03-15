@@ -43,7 +43,7 @@ const (
 
 type Client struct {
 	client     		*http.Client
-	EnableSsl       bool
+	DisableSsl       bool
 	InsecureSkipVerify bool
 	baseURL   *url.URL
 	UserAgent string
@@ -60,7 +60,7 @@ type ListOptions struct {
 	PerPage int `url:"per_page,omitempty" json:"per_page,omitempty"`
 }
 
-func NewClient(host string, User string, Passwd string, EnableSsl bool, InsecureSkipVerify bool, httpClient *http.Client) (client *Client, err error) {
+func NewClient(host string, User string, Passwd string, DisableSsl bool, InsecureSkipVerify bool, httpClient *http.Client) (client *Client, err error) {
 
 	ssl := &tls.Config{}
 	if InsecureSkipVerify {
@@ -82,7 +82,7 @@ func NewClient(host string, User string, Passwd string, EnableSsl bool, Insecure
 		UserAgent: 					userAgent,
 		apiUser:   					User,
 		apiPasswd: 					Passwd,
-		EnableSsl:   		 					EnableSsl,
+		DisableSsl:   		 	DisableSsl,
 		InsecureSkipVerify: InsecureSkipVerify,
 	}
 
@@ -99,9 +99,9 @@ func NewClient(host string, User string, Passwd string, EnableSsl bool, Insecure
 func (c *Client) SetHost(hostStr string) error {
 	var err error
 
-	p := "http"
-	if c.EnableSsl {
-		p = "https"
+	p := "https"
+	if c.DisableSsl {
+		p = "http"
 	}
 
 	err = c.SetBaseURL(p + "://" + hostStr + "/pulp/api/" + apiVersion + "/")
