@@ -21,14 +21,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/google/go-querystring/query"
-	"github.com/mreiferson/go-httpclient"
 	"io"
 	"io/ioutil"
-	"net/http"
 	"net/url"
 	"strings"
-	"time"
-  "crypto/tls"
+
+	// comment the std libs as they do not support InsecureSkipVerify
+	// https://github.com/golang/go/issues/5742
+	// replace them with a fixed version
+	// "net/http"
+  // "crypto/tls"
+	"github.com/Azure/azure-sdk-for-go/core/http"
+	"github.com/Azure/azure-sdk-for-go/core/tls"
 )
 
 const (
@@ -39,7 +43,7 @@ const (
 
 type Client struct {
 	client     		*http.Client
-	ssl       bool
+	EnableSsl       bool
 	InsecureSkipVerify bool
 	baseURL   *url.URL
 	UserAgent string
@@ -56,30 +60,29 @@ type ListOptions struct {
 	PerPage int `url:"per_page,omitempty" json:"per_page,omitempty"`
 }
 
-func NewClient(host string, User string, Passwd string, ssl bool, InsecureSkipVerify bool, httpClient *http.Client) (client *Client, err error) {
-	if httpClient == nil {
-		httpClient = http.DefaultClient
-	}
+func NewClient(host string, User string, Passwd string, EnableSsl bool, InsecureSkipVerify bool, httpClient *http.Client) (client *Client, err error) {
 
-	transport := &httpclient.Transport{
-		ConnectTimeout:        1 * time.Second,
-		ResponseHeaderTimeout: 10 * time.Second,
-		RequestTimeout:        30 * time.Second,
-	}
-
+	ssl := &tls.Config{}
 	if InsecureSkipVerify {
-		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		ssl.InsecureSkipVerify =  true
 	}
 
-	defer transport.Close()
-	httpClient.Transport = transport
+	transport := &http.Transport{
+		TLSClientConfig: 			 ssl,
+	}
+
+	if httpClient == nil {
+		httpClient = &http.Client{
+			Transport: transport,
+		}
+	}
 
 	client = &Client{
 		client:    					httpClient,
 		UserAgent: 					userAgent,
 		apiUser:   					User,
 		apiPasswd: 					Passwd,
-		ssl:   		 					ssl,
+		EnableSsl:   		 					EnableSsl,
 		InsecureSkipVerify: InsecureSkipVerify,
 	}
 
@@ -97,7 +100,7 @@ func (c *Client) SetHost(hostStr string) error {
 	var err error
 
 	p := "http"
-	if c.ssl {
+	if c.EnableSsl {
 		p = "https"
 	}
 

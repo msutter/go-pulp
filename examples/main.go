@@ -1,3 +1,4 @@
+// simple example of getting a repo metadatas and running a sync on it
 package main
 
 import (
@@ -10,10 +11,10 @@ import (
 func main() {
 	apiUser := "admin"
 	apiPasswd := "admin"
-	apiEndpoint := "pulp-lab-1.test"
+	apiEndpoint := "pulp-lab-11.test"
 
 	// create the client
-	client, err := pulp.NewClient(apiEndpoint, apiUser, apiPasswd, false, false, nil)
+	client, err := pulp.NewClient(apiEndpoint, apiUser, apiPasswd, true, true, nil)
 
 	// repository options
 	ro := &pulp.GetRepositoryOptions{
@@ -26,12 +27,13 @@ func main() {
 	r, _, err := client.Repositories.GetRepository(repo, ro)
 	fmt.Printf("%v\n", r)
 	_ = "breakpoint"
+
 	if err != nil {
-		// fmt.Println(err.Error())
+		fmt.Println(err.Error())
 		log.Fatal(err)
 	}
 
-	// get the repo
+	// sync it
 	callReport, _, err := client.Repositories.SyncRepository(repo)
 	syncTaskId := callReport.SpawnedTasks[0].TaskId
 	fmt.Printf("TaskId: %v\n", syncTaskId)
@@ -40,7 +42,7 @@ func main() {
 	}
 
 	state := "init"
-	for state != "finished" {
+	for (state != "finished") && (state != "error")  {
 		task, _, terr := client.Tasks.GetTask(syncTaskId)
 		fmt.Printf("%v\n", task.State)
 
