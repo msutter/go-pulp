@@ -28,6 +28,7 @@ import (
 	"net/url"
 	"strings"
 	"time"
+  "crypto/tls"
 )
 
 const (
@@ -37,8 +38,9 @@ const (
 )
 
 type Client struct {
-	client    *http.Client
-	SSL       bool
+	client     		*http.Client
+	ssl       bool
+	InsecureSkipVerify bool
 	baseURL   *url.URL
 	UserAgent string
 	apiUser   string
@@ -54,7 +56,7 @@ type ListOptions struct {
 	PerPage int `url:"per_page,omitempty" json:"per_page,omitempty"`
 }
 
-func NewClient(host string, User string, Passwd string, httpClient *http.Client) (client *Client, err error) {
+func NewClient(host string, User string, Passwd string, ssl bool, InsecureSkipVerify bool, httpClient *http.Client) (client *Client, err error) {
 	if httpClient == nil {
 		httpClient = http.DefaultClient
 	}
@@ -64,14 +66,21 @@ func NewClient(host string, User string, Passwd string, httpClient *http.Client)
 		ResponseHeaderTimeout: 10 * time.Second,
 		RequestTimeout:        30 * time.Second,
 	}
+
+	if InsecureSkipVerify {
+		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+
 	defer transport.Close()
 	httpClient.Transport = transport
 
 	client = &Client{
-		client:    httpClient,
-		UserAgent: userAgent,
-		apiUser:   User,
-		apiPasswd: Passwd,
+		client:    					httpClient,
+		UserAgent: 					userAgent,
+		apiUser:   					User,
+		apiPasswd: 					Passwd,
+		ssl:   		 					ssl,
+		InsecureSkipVerify: InsecureSkipVerify,
 	}
 
 	if err := client.SetHost(host); err != nil {
@@ -88,7 +97,7 @@ func (c *Client) SetHost(hostStr string) error {
 	var err error
 
 	p := "http"
-	if c.SSL {
+	if c.ssl {
 		p = "https"
 	}
 
