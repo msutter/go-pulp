@@ -11,7 +11,7 @@ import (
 func main() {
 	apiUser := "admin"
 	apiPasswd := "admin"
-	apiEndpoint := "pulp-lab-1.test"
+	apiEndpoint := "pulp-lab-11.test"
 
 	DisableSsl := false
 	SkipSslVerify := true

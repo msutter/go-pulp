@@ -25,6 +25,7 @@ import (
 	"io/ioutil"
 	"net/url"
 	"strings"
+	"time"
 
 	// comment the std libs as they do not support InsecureSkipVerify
 	// https://github.com/golang/go/issues/5742
@@ -42,13 +43,13 @@ const (
 )
 
 type Client struct {
-	client     		*http.Client
-	DisableSsl       bool
-	InsecureSkipVerify bool
-	baseURL   *url.URL
-	UserAgent string
-	apiUser   string
-	apiPasswd string
+	client     					*http.Client
+	DisableSsl       		bool
+	InsecureSkipVerify 	bool
+	baseURL   					*url.URL
+	UserAgent 					string
+	apiUser   					string
+	apiPasswd 					string
 
 	// Services used for talking to different parts of the Pulp API.
 	Repositories *RepositoriesService
@@ -73,7 +74,8 @@ func NewClient(host string, User string, Passwd string, DisableSsl bool, Insecur
 
 	if httpClient == nil {
 		httpClient = &http.Client{
-			Transport: transport,
+			Transport: 	transport,
+			// Timeout:		time.Duration(1000) * time.Millisecond,
 		}
 	}
 
@@ -86,6 +88,9 @@ func NewClient(host string, User string, Passwd string, DisableSsl bool, Insecur
 		InsecureSkipVerify: InsecureSkipVerify,
 	}
 
+	// set default timeout on 2 seconds
+	client.SetTimeout(2000)
+
 	if err := client.SetHost(host); err != nil {
 		return nil, err
 	}
@@ -94,6 +99,11 @@ func NewClient(host string, User string, Passwd string, DisableSsl bool, Insecur
 	client.Tasks = &TasksService{client: client}
 
 	return
+}
+
+// set timeout in milliseconds
+func (c *Client) SetTimeout(timeout int) {
+	c.client.Timeout = time.Duration(timeout) * time.Millisecond
 }
 
 func (c *Client) SetHost(hostStr string) error {
