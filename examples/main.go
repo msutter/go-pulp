@@ -45,10 +45,22 @@ func main() {
 	}
 
 	state := "init"
-	for (state != "finished") && (state != "error")  {
+	for (state != "finished") && (state != "error") {
 		task, _, terr := client.Tasks.GetTask(syncTaskId)
-		fmt.Printf("%v\n", task.State)
 
+		fmt.Printf("----- progress --------\n")
+		fmt.Printf("state: %v\n", task.State)
+		fmt.Printf("progressReport: %v\n", task.ProgressReport)
+		if task.ProgressReport.YumImporter.Content != nil {
+			fmt.Printf("yum importer: %v\n", task.ProgressReport.YumImporter)
+			fmt.Printf("yum item Total: %v\n", task.ProgressReport.YumImporter.Content.ItemsTotal)
+			fmt.Printf("yum item Left: %v\n", task.ProgressReport.YumImporter.Content.ItemsLeft)
+		}
+		if task.ProgressReport.DockerImporter.Content != nil {
+			fmt.Printf("docker importer: %v\n", task.ProgressReport.DockerImporter)
+			fmt.Printf("yum item Total: %v\n", task.ProgressReport.DockerImporter.Content.ItemsTotal)
+			fmt.Printf("yum item Left: %v\n", task.ProgressReport.DockerImporter.Content.ItemsLeft)
+		}
 		state = task.State
 		time.Sleep(500 * time.Millisecond)
 		if terr != nil {
