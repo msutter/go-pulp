@@ -24,6 +24,23 @@ type TasksService struct {
 	client *Client
 }
 
+// included in task
+type Content struct {
+	State        string   `json:"state"`
+	ItemsTotal   int      `json:"items_total"`
+	ItemsLeft    int      `json:"items_left"`
+	SizeTotal    int      `json:"size_total"`
+	SizeLeft     int      `json:"size_left"`
+	ErrorDetails []string `json:"error_details"`
+}
+
+// included in task
+type Metadata struct {
+	State string
+	Error string
+}
+
+// included in task
 type Task struct {
 	Id             string `json:"task_id"`
 	StartTime      string `json:"start_time"`
@@ -31,13 +48,18 @@ type Task struct {
 	State          string `json:"state"`
 	Error          *Error `json:"error"`
 	ProgressReport struct {
+
+		// yum importer
 		YumImporter struct {
 			Content  *Content
-			Metadata struct {
-				State string
-				Error string
-			}
+			Metadata *Metadata
 		} `json:"yum_importer"`
+
+		// docker importer
+		DockerImporter struct {
+			Content  *Content
+			Metadata *Metadata
+		} `json:"docker_importer"`
 	} `json:"progress_report"`
 
 	Result struct {
@@ -45,21 +67,6 @@ type Task struct {
 			Content *Content `json:"content"`
 		} `json:"details"`
 	} `json:"result"`
-}
-
-type Content struct {
-	SizeTotal      int      `json:"size_total"`
-	ItemsLeft      int      `json:"items_left"`
-	ItemsTotal     int      `json:"items_total"`
-	State          string   `json:"state"`
-	SizeLeft       int      `json:"size_left"`
-	ErrorDetails   []string `json:"error_details"`
-	ContentDetails struct {
-		RpmTotal  int `json:"rpm_total"`
-		RpmDone   int `json:"rpm_done"`
-		DrpmTotal int `json:"drpm_total"`
-		DrpmDone  int `json:"drpm_done"`
-	} `json:"details"`
 }
 
 func (t Task) String() string {
