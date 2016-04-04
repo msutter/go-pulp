@@ -25,22 +25,6 @@ type TasksService struct {
 }
 
 // included in task
-type Content struct {
-	State        string   `json:"state"`
-	ItemsTotal   int      `json:"items_total"`
-	ItemsLeft    int      `json:"items_left"`
-	SizeTotal    int      `json:"size_total"`
-	SizeLeft     int      `json:"size_left"`
-	ErrorDetails []string `json:"error_details"`
-}
-
-// included in task
-type Metadata struct {
-	State string
-	Error string
-}
-
-// included in task
 type Task struct {
 	Id             string `json:"task_id"`
 	StartTime      string `json:"start_time"`
@@ -50,16 +34,10 @@ type Task struct {
 	ProgressReport struct {
 
 		// yum importer
-		YumImporter struct {
-			Content  *Content
-			Metadata *Metadata
-		} `json:"yum_importer"`
+		YumImporter *Importer `json:"yum_importer"`
 
 		// docker importer
-		DockerImporter struct {
-			Content  *Content
-			Metadata *Metadata
-		} `json:"docker_importer"`
+		DockerImporter *Importer `json:"docker_importer"`
 	} `json:"progress_report"`
 
 	Result struct {
@@ -69,8 +47,19 @@ type Task struct {
 	} `json:"result"`
 }
 
-func (t Task) String() string {
+func (t *Task) String() string {
 	return Stringify(t)
+}
+
+func (t *Task) Importer() (importer string) {
+	if t.ProgressReport.YumImporter != nil {
+		importer = "yum"
+	}
+
+	if t.ProgressReport.DockerImporter != nil {
+		importer = "docker"
+	}
+	return
 }
 
 func (s *TasksService) ListTasks() ([]*Task, *Response, error) {

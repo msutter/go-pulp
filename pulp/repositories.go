@@ -30,16 +30,6 @@ type Repository struct {
 	Importers []*Importer `json:"importers"`
 }
 
-type Importer struct {
-	Id             string          `json:"id"`
-	ImporterConfig *ImporterConfig `json:"config"`
-}
-
-type ImporterConfig struct {
-	Feed          string `json:"feed"`
-	RemoveMissing bool   `json:"remove_missing"`
-}
-
 func (r Repository) String() string {
 	return Stringify(r)
 }
