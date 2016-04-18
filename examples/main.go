@@ -11,7 +11,7 @@ import (
 func main() {
 	apiUser := "admin"
 	apiPasswd := "admin"
-	apiEndpoint := "pulp-lab-11.test"
+	apiEndpoint := "pulp-lab-1.test"
 
 	DisableSsl := false
 	SkipSslVerify := true
@@ -24,21 +24,51 @@ func main() {
 		Details: true,
 	}
 
-	repo := "test-repo-1-lab"
+	repo := "sccloud-mgmt-infra-el6-lab"
 
 	// get the repo
-	r, _, err := client.Repositories.GetRepository(repo, ro)
+	r, _, rerr := client.Repositories.GetRepository(repo, ro)
 	fmt.Printf("%v\n", r)
-	_ = "breakpoint"
 
-	if err != nil {
-		fmt.Println(err.Error())
-		log.Fatal(err)
+	if rerr != nil {
+		fmt.Println(rerr.Error())
+		log.Fatal(rerr)
 	}
 
+	// Get repo units
+	u, _, uerr := client.Repositories.ListRepositoryUnits(repo)
+
+	if uerr != nil {
+		fmt.Println(uerr.Error())
+		log.Fatal(uerr)
+	}
+
+	fmt.Printf("%v\n", u)
+
+	units := []string{
+		"nodetree",
+	}
+
+	// target_repo := repo
+	// source_repo := "test-repo-1-lab"
+
+	query := pulp.NewQuery()
+	query.Operator = "$or"
+
+	for _, unitName := range units {
+		query.AddExpression("filename", "$regex", unitName)
+	}
+
+	queryMap := query.GetMap()
+	_ = queryMap
+	_ = "breakpoint"
+
+	// associateCallReport, _, err := client.Repositories.CopyRepositoryUnits(source_repo, target_repo, queryMap)
+	// _ = associateCallReport
+
 	// sync it
-	callReport, _, err := client.Repositories.SyncRepository(repo)
-	syncTaskId := callReport.SpawnedTasks[0].TaskId
+	syncCallReport, _, err := client.Repositories.SyncRepository(repo)
+	syncTaskId := syncCallReport.SpawnedTasks[0].TaskId
 	fmt.Printf("TaskId: %v\n", syncTaskId)
 	if err != nil {
 		log.Fatal(err)
