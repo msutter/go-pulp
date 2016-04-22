@@ -19,7 +19,6 @@ package pulp
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"github.com/google/go-querystring/query"
 	"io"
 	"io/ioutil"
@@ -31,7 +30,7 @@ import (
 	// https://github.com/golang/go/issues/5742
 	// replace them with a fixed version
 	// "net/http"
-  // "crypto/tls"
+	// "crypto/tls"
 	"github.com/Azure/azure-sdk-for-go/core/http"
 	"github.com/Azure/azure-sdk-for-go/core/tls"
 )
@@ -42,49 +41,49 @@ const (
 	userAgent      = "go-pulp/" + libraryVersion
 )
 
+// Client type definition
+
 type Client struct {
-	client     					*http.Client
-	DisableSsl       		bool
-	InsecureSkipVerify 	bool
-	baseURL   					*url.URL
-	UserAgent 					string
-	apiUser   					string
-	apiPasswd 					string
+	client             *http.Client
+	DisableSsl         bool
+	InsecureSkipVerify bool
+	baseURL            *url.URL
+	UserAgent          string
+	apiUser            string
+	apiPasswd          string
 
 	// Services used for talking to different parts of the Pulp API.
 	Repositories *RepositoriesService
 	Tasks        *TasksService
+	Units        *UnitsService
 }
 
-type ListOptions struct {
-	Page    int `url:"page,omitempty" json:"page,omitempty"`
-	PerPage int `url:"per_page,omitempty" json:"per_page,omitempty"`
-}
+// Client type constructor
 
 func NewClient(host string, User string, Passwd string, DisableSsl bool, InsecureSkipVerify bool, httpClient *http.Client) (client *Client, err error) {
 
 	ssl := &tls.Config{}
 	if InsecureSkipVerify {
-		ssl.InsecureSkipVerify =  true
+		ssl.InsecureSkipVerify = true
 	}
 
 	transport := &http.Transport{
-		TLSClientConfig: 			 ssl,
+		TLSClientConfig: ssl,
 	}
 
 	if httpClient == nil {
 		httpClient = &http.Client{
-			Transport: 	transport,
+			Transport: transport,
 			// Timeout:		time.Duration(1000) * time.Millisecond,
 		}
 	}
 
 	client = &Client{
-		client:    					httpClient,
-		UserAgent: 					userAgent,
-		apiUser:   					User,
-		apiPasswd: 					Passwd,
-		DisableSsl:   		 	DisableSsl,
+		client:             httpClient,
+		UserAgent:          userAgent,
+		apiUser:            User,
+		apiPasswd:          Passwd,
+		DisableSsl:         DisableSsl,
 		InsecureSkipVerify: InsecureSkipVerify,
 	}
 
@@ -97,11 +96,13 @@ func NewClient(host string, User string, Passwd string, DisableSsl bool, Insecur
 
 	client.Repositories = &RepositoriesService{client: client}
 	client.Tasks = &TasksService{client: client}
+	client.Units = &UnitsService{client: client}
 
 	return
 }
 
-// set timeout in milliseconds
+// Client type methods
+
 func (c *Client) SetTimeout(timeout int) {
 	c.client.Timeout = time.Duration(timeout) * time.Millisecond
 }
@@ -139,10 +140,6 @@ func (c *Client) SetBaseURL(urlStr string) error {
 	}
 
 	return nil
-}
-
-type Response struct {
-	*http.Response
 }
 
 func (c *Client) NewRequest(method, path string, opt interface{}) (*http.Request, error) {
@@ -188,11 +185,6 @@ func (c *Client) NewRequest(method, path string, opt interface{}) (*http.Request
 	return req, nil
 }
 
-func newResponse(r *http.Response) *Response {
-	response := &Response{Response: r}
-	return response
-}
-
 func (c *Client) Do(req *http.Request, v interface{}) (*Response, error) {
 	resp, err := c.client.Do(req)
 	if err != nil {
@@ -201,7 +193,7 @@ func (c *Client) Do(req *http.Request, v interface{}) (*Response, error) {
 
 	defer resp.Body.Close()
 
-	response := newResponse(resp)
+	response := NewResponse(resp)
 
 	err = CheckResponse(resp)
 	if err != nil {
@@ -218,45 +210,17 @@ func (c *Client) Do(req *http.Request, v interface{}) (*Response, error) {
 	return response, err
 }
 
-// Pulp Api docs:
-// http://pulp.readthedocs.org/en/latest/dev-guide/conventions/exceptions.html#exception-handling
-type ErrorResponse struct {
-	Response     *http.Response // HTTP response that caused this error
-	ResourceID   string         `json:"resource_id"`
-	Message      string         `json:"error_message"` // error message
-	ErrorDetails *Error         `json:"error"`         // more detail on individual errors
+// Response type definition
 
+type Response struct {
+	*http.Response
 }
 
-func (r *ErrorResponse) Error() string {
-	path, _ := url.QueryUnescape(r.Response.Request.URL.Opaque)
-	ru := fmt.Sprintf("%s://%s%s", r.Response.Request.URL.Scheme, r.Response.Request.URL.Host, path)
-	return fmt.Sprintf("%v %s: %d %v", r.Response.Request.Method, ru, r.Response.StatusCode, r.Message)
-}
+// Response type constructor/functions
 
-// Pulp Api docs:
-// http://pulp.readthedocs.org/en/latest/dev-guide/conventions/exceptions.html#error-details
-type Error struct {
-	Code        string          `json:"code"`
-	Description string          `json:"description"`
-	Data        json.RawMessage `json:"data"`
-	Sub_errors  json.RawMessage `json:"sub_errors"`
-}
-
-// Pulp Api docs:
-// http://pulp.readthedocs.org/en/latest/dev-guide/conventions/sync-v-async.html#call-report
-type CallReport struct {
-	Result       string `json:"result"`
-	Error        *Error `json:"error"`
-	SpawnedTasks []struct {
-		Href   string `json:"_href"`
-		TaskId string `json:"task_id"`
-	} `json:"spawned_tasks"`
-}
-
-func (e *Error) Error() string {
-	return fmt.Sprintf("%v error: %v",
-		e.Code, e.Description)
+func NewResponse(r *http.Response) *Response {
+	response := &Response{Response: r}
+	return response
 }
 
 func CheckResponse(r *http.Response) error {
@@ -270,6 +234,8 @@ func CheckResponse(r *http.Response) error {
 	}
 	return errorResponse
 }
+
+// Global Functions
 
 func Bool(v bool) *bool {
 	p := new(bool)

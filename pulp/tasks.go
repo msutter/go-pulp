@@ -24,44 +24,6 @@ type TasksService struct {
 	client *Client
 }
 
-// included in task
-type Task struct {
-	Id             string `json:"task_id"`
-	StartTime      string `json:"start_time"`
-	FinishTime     string `json:"finish_time"`
-	State          string `json:"state"`
-	Error          *Error `json:"error"`
-	ProgressReport struct {
-
-		// yum importer
-		YumImporter *Importer `json:"yum_importer"`
-
-		// docker importer
-		DockerImporter *Importer `json:"docker_importer"`
-	} `json:"progress_report"`
-
-	Result struct {
-		Details struct {
-			Content *Content `json:"content"`
-		} `json:"details"`
-	} `json:"result"`
-}
-
-func (t *Task) String() string {
-	return Stringify(t)
-}
-
-func (t *Task) Importer() (importer string) {
-	if t.ProgressReport.YumImporter != nil {
-		importer = "yum"
-	}
-
-	if t.ProgressReport.DockerImporter != nil {
-		importer = "docker"
-	}
-	return
-}
-
 func (s *TasksService) ListTasks() ([]*Task, *Response, error) {
 	req, err := s.client.NewRequest("GET", "tasks/", nil)
 	if err != nil {
@@ -92,4 +54,59 @@ func (s *TasksService) GetTask(task string) (*Task, *Response, error) {
 	}
 
 	return t, resp, err
+}
+
+type Task struct {
+	Id             string          `json:"task_id"`
+	StartTime      string          `json:"start_time"`
+	FinishTime     string          `json:"finish_time"`
+	State          string          `json:"state"`
+	Error          *Error          `json:"error"`
+	ProgressReport *ProgressReport `json:"progress_report"`
+	Result         *Result         `json:"result"`
+}
+
+func (t *Task) String() string {
+	return Stringify(t)
+}
+
+func (t *Task) Importer() (importer string) {
+	if t.ProgressReport.YumImporter != nil {
+		importer = "yum"
+	}
+
+	if t.ProgressReport.DockerImporter != nil {
+		importer = "docker"
+	}
+	return
+}
+
+type ProgressReport struct {
+	// yum importer
+	YumImporter *Importer `json:"yum_importer"`
+	// docker importer
+	DockerImporter *Importer `json:"docker_importer"`
+}
+
+type Details struct {
+	Content *Content `json:"content"`
+}
+
+type Result struct {
+	Details     `json:"details"`
+	ResultUnits []ResultUnit `json:"units_successful"`
+}
+
+type ResultUnit struct {
+	UnitKey *UnitKey `json:"unit_key"`
+	TypeId  string   `json:"type_id"`
+}
+
+type UnitKey struct {
+	Id       string `json:"id"`
+	FileName string `json:"filename"`
+	Name     string `json:"name"`
+	Version  string `json:"version"`
+	Release  string `json:"release"`
+	Arch     string `json:"arch"`
 }

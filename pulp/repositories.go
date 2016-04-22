@@ -17,6 +17,7 @@
 package pulp
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
@@ -47,6 +48,20 @@ func (s *RepositoriesService) ListRepositories(opt *GetRepositoryOptions) ([]*Re
 		return nil, resp, err
 	}
 
+	return r, resp, err
+}
+
+func (s *RepositoriesService) ListRepositoryUnits(repository string) ([]*Unit, *Response, error) {
+	// set fields (must also be defined in the unit struct)
+	fields := []string{
+		"name",
+		"version",
+		"filename",
+		"requires",
+	}
+
+	s.client.Units.SetFields(fields)
+	r, resp, err := s.client.Units.ListUnits(repository)
 	return r, resp, err
 }
 
@@ -84,6 +99,46 @@ func (s *RepositoriesService) SyncRepository(repository string) (*CallReport, *R
 	cr := new(CallReport)
 	resp, err := s.client.Do(req, &cr)
 
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return cr, resp, err
+}
+
+type CopyRepositoryUnitsOptions struct {
+	SourceRepository string                   `json:"source_repo_id,omitempty"`
+	Criteria         *UnitAssociationCriteria `json:"criteria,omitempty"`
+}
+
+func (s *RepositoriesService) CopyRepositoryUnits(
+	source_repository_id string,
+	destination_repo_id string,
+	criteria *UnitAssociationCriteria,
+	// queryMap map[string][]map[string]map[string]string,
+) (
+	*CallReport,
+	*Response,
+	error,
+) {
+
+	u := fmt.Sprintf("repositories/%s/actions/associate/", destination_repo_id)
+
+	opt := &CopyRepositoryUnitsOptions{
+		SourceRepository: source_repository_id,
+		Criteria:         criteria,
+	}
+
+	jsonOpt, err := json.Marshal(opt)
+	fmt.Printf("JsonOpt: %s\n", jsonOpt)
+
+	req, err := s.client.NewRequest("POST", u, opt)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	cr := new(CallReport)
+	resp, err := s.client.Do(req, &cr)
 	if err != nil {
 		return nil, resp, err
 	}

@@ -11,7 +11,7 @@ import (
 func main() {
 	apiUser := "admin"
 	apiPasswd := "admin"
-	apiEndpoint := "pulp-lab-11.test"
+	apiEndpoint := "pulp-lab-1.test"
 
 	DisableSsl := false
 	SkipSslVerify := true
@@ -35,6 +35,37 @@ func main() {
 		log.Fatal(rerr)
 	}
 
+	//Get repo units
+	u, _, uerr := client.Repositories.ListRepositoryUnits(repo)
+
+	if uerr != nil {
+		fmt.Println(uerr.Error())
+		log.Fatal(uerr)
+	}
+
+	fmt.Printf("Units: %v\n", u)
+
+	units := []string{
+		"nodetree",
+	}
+
+	target_repo := repo
+	source_repo := "test-repo-1-lab"
+
+	query := pulp.NewQuery()
+	query.Operator = "$or"
+
+	for _, unitName := range units {
+		query.AddExpression("filename", "$regex", unitName)
+	}
+
+	queryMap := query.GetMap()
+
+	associateCallReport, _, err := client.Repositories.CopyRepositoryUnits(source_repo, target_repo, queryMap)
+	_ = associateCallReport
+
+	_ = "breakpoint"
+
 	// sync it
 	syncCallReport, _, err := client.Repositories.SyncRepository(repo)
 	syncTaskId := syncCallReport.SpawnedTasks[0].TaskId
@@ -46,6 +77,7 @@ func main() {
 	state := "init"
 	for (state != "finished") && (state != "error") {
 		task, _, terr := client.Tasks.GetTask(syncTaskId)
+		fmt.Printf("task: %v\n", task)
 
 		fmt.Printf("----- progress --------\n")
 		fmt.Printf("state: %v\n", task.State)
