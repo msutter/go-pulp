@@ -29,6 +29,72 @@ func (s *UnitsService) SetFields(fields []string) {
 	s.Fields = fields
 }
 
+type Unit struct {
+	Id       string `json:"id"`
+	RepoId   string `json:"repo_id"`
+	TypeId   string `json:"unit_type_id"`
+	UnitId   string `json:"unit_id"`
+	Metadata struct {
+		Name     string    `json:"name"`
+		Version  string    `json:"version"`
+		FileName string    `json:"filename"`
+		Requires []Require `json:"requires"`
+	} `json:"metadata"`
+}
+
+type Require struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+}
+
+//  Options
+type GetUnitOptions struct {
+	*SearchCriteria `json:"criteria,omitempty"`
+}
+
+func (s *UnitsService) GetUnitByTaskResult(result *Result) ([]*Unit, *Response, error) {
+
+	orFilter := NewFilter("$or")
+	for _, resultUnit := range result.ResultUnits {
+		andFilter := NewFilter("$and")
+
+		andFilter.AddExpression("name", "$regex", fmt.Sprintf("^%s$", resultUnit.UnitKey.Name))
+		andFilter.AddExpression("version", "$regex", fmt.Sprintf("^%s$", resultUnit.UnitKey.Version))
+		andFilter.AddExpression("release", "$regex", fmt.Sprintf("^%s$", resultUnit.UnitKey.Release))
+		andFilter.AddExpression("arch", "$regex", fmt.Sprintf("^%s$", resultUnit.UnitKey.Arch))
+
+		orFilter.AddSubFilter(andFilter)
+	}
+
+	criteria := NewSearchCriteria()
+	criteria.AddField("filename")
+	criteria.AddFilter(orFilter)
+
+	opt := GetUnitOptions{
+		SearchCriteria: criteria,
+	}
+
+	// url := fmt.Sprintf("content/units/%s/search/", resultUnit.TypeId)
+	url := fmt.Sprintf("content/units/%s/search/", "rpm")
+	req, err := s.client.NewRequest("POST", url, opt)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var u []*Unit
+	resp, err := s.client.Do(req, &u)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return u, resp, err
+}
+
+//  Options
+type ListUnitsOptions struct {
+	*UnitAssociationCriteria `json:"criteria,omitempty"`
+}
+
 func (s *UnitsService) ListUnits(repository string) ([]*Unit, *Response, error) {
 	// units options
 
@@ -52,26 +118,4 @@ func (s *UnitsService) ListUnits(repository string) ([]*Unit, *Response, error) 
 	}
 
 	return u, resp, err
-}
-
-//  Options
-type ListUnitsOptions struct {
-	*UnitAssociationCriteria `json:"criteria,omitempty"`
-}
-
-type Unit struct {
-	Id       string `json:"id"`
-	RepoId   string `json:"repo_id"`
-	TypeId   string `json:"unit_type_id"`
-	Metadata struct {
-		Name     string    `json:"name"`
-		Version  string    `json:"version"`
-		FileName string    `json:"filename"`
-		Requires []Require `json:"requires"`
-	} `json:"metadata"`
-}
-
-type Require struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
 }

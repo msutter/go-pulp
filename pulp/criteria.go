@@ -6,11 +6,6 @@ import (
 
 // Criteria
 
-type SearchCriteria struct {
-	SearchFilters map[string]interface{} `json:"filters,omitempty"`
-	SearchFields  []string               `json:"fields,omitempty"`
-}
-
 type UnitAssociationCriteria struct {
 	UnitAssociationFilters `json:"filters,omitempty"`
 	UnitAssociationFields  `json:"fields,omitempty"`
@@ -33,12 +28,36 @@ func (uac *UnitAssociationCriteria) AddFields(fields []string) {
 	uac.UnitAssociationFields.AddFields(fields)
 }
 
-func NewSearchCriteria(filters map[string]interface{}, fields []string) (criteria *SearchCriteria) {
-	criteria = &SearchCriteria{
-		SearchFilters: filters,
-		SearchFields:  fields,
-	}
+func (uac *UnitAssociationCriteria) AddField(field string) {
+	uac.UnitAssociationFields.AddField(field)
+}
+
+type SearchCriteria struct {
+	SearchFilters map[string]interface{} `json:"filters,omitempty"`
+	SearchFields  []string               `json:"fields,omitempty"`
+}
+
+func NewSearchCriteria() (criteria *SearchCriteria) {
+	criteria = &SearchCriteria{}
 	return
+}
+
+func (sc *SearchCriteria) AddFilter(filter *Filter) {
+	sc.AddFilterMap(filter.GetMap())
+}
+
+func (sc *SearchCriteria) AddFilterMap(filterMap map[string]interface{}) {
+	sc.SearchFilters = mapop.Merge(sc.SearchFilters, filterMap)
+}
+
+func (sc *SearchCriteria) AddFields(fields []string) {
+	for _, field := range fields {
+		sc.AddField(field)
+	}
+}
+
+func (sc *SearchCriteria) AddField(field string) {
+	sc.SearchFields = append(sc.SearchFields, field)
 }
 
 // Unit association fields
@@ -72,8 +91,12 @@ func (uaf *UnitAssociationFilters) AddFilterMap(filterMap map[string]interface{}
 
 func (uafields *UnitAssociationFields) AddFields(fields []string) {
 	for _, field := range fields {
-		uafields.Unit = append(uafields.Unit, field)
+		uafields.AddField(field)
 	}
+}
+
+func (uafields *UnitAssociationFields) AddField(field string) {
+	uafields.Unit = append(uafields.Unit, field)
 }
 
 func NewUnitAssociationFiters(filters map[string]interface{}) (unitAssociationFilters UnitAssociationFilters) {
@@ -88,15 +111,16 @@ func NewUnitAssociationFiters(filters map[string]interface{}) (unitAssociationFi
 type Filter struct {
 	Operator    string
 	Expressions []*Expression
+	SubFilters  []*Filter
 }
 
-func (q *Filter) AddExpression(field string, selector string, value string) {
+func (f *Filter) AddExpression(field string, selector string, value string) {
 	expression := &Expression{
 		UnitField: field,
 		Selector:  selector,
 		Value:     value,
 	}
-	q.Expressions = append(q.Expressions, expression)
+	f.Expressions = append(f.Expressions, expression)
 }
 
 func NewFilter(operator string) (filter *Filter) {
@@ -106,14 +130,19 @@ func NewFilter(operator string) (filter *Filter) {
 	return
 }
 
-func (q *Filter) GetMap() (filterMap map[string]interface{}) {
+func (f *Filter) AddSubFilter(filter *Filter) {
+	f.SubFilters = append(f.SubFilters, filter)
+}
+
+func (f *Filter) GetMap() (filterMap map[string]interface{}) {
 	expressions := []map[string]map[string]string{}
-	for _, exp := range q.Expressions {
+	for _, exp := range f.Expressions {
 		expressions = append(expressions, exp.GetMap())
 	}
 	filterMap = map[string]interface{}{
-		q.Operator: expressions,
+		f.Operator: expressions,
 	}
+
 	return
 }
 

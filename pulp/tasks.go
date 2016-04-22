@@ -103,10 +103,8 @@ type ResultUnit struct {
 }
 
 type UnitKey struct {
-	Id       string `json:"id"`
-	FileName string `json:"filename"`
-	Name     string `json:"name"`
-	Version  string `json:"version"`
-	Release  string `json:"release"`
-	Arch     string `json:"arch"`
+	Name    string `json:"name"`
+	Version string `json:"version"`
+	Release string `json:"release"`
+	Arch    string `json:"arch"`
 }

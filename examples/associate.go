@@ -54,6 +54,13 @@ func main() {
 	criteria := pulp.NewUnitAssociationCriteria()
 	criteria.AddFilter(orFilter)
 	criteria.AddFilter(andFilter)
+	criteria.AddField("name")
+	criteria.AddField("version")
+	criteria.AddField("epoch")
+	criteria.AddField("release")
+	criteria.AddField("arch")
+	criteria.AddField("checksumtype")
+	criteria.AddField("checksum")
 
 	// check request body
 	jsonCriteria, err := json.Marshal(criteria)
@@ -78,7 +85,7 @@ func main() {
 
 		if task.State == "finished" {
 			for _, resultUnit := range task.Result.ResultUnits {
-				fmt.Printf("rpm: %s\n", resultUnit.UnitKey.Name)
+				fmt.Printf("rpm: %s\n", resultUnit.UnitKey)
 			}
 		}
 		if task.State == "running" {
