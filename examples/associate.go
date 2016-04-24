@@ -51,9 +51,10 @@ func main() {
 	andFilter := pulp.NewFilter("$and")
 	andFilter.AddExpression("filename", "$regex", "node")
 
+	orFilter.AddSubFilter(andFilter)
+
 	criteria := pulp.NewUnitAssociationCriteria()
 	criteria.AddFilter(orFilter)
-	criteria.AddFilter(andFilter)
 	criteria.AddField("name")
 	criteria.AddField("version")
 	criteria.AddField("epoch")
