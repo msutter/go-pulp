@@ -41,17 +41,29 @@ func main() {
 		fmt.Printf("%v\n", u.Metadata.FileName)
 	}
 
-	orFilter := pulp.NewFilter("$or")
+	orFilter := pulp.NewFilter()
+	orFilter.Operator = "$or"
 	for _, fileName := range fileNames {
 		// only match exact filename
 		regex := fmt.Sprintf("^%s", fileName)
 		orFilter.AddExpression("filename", "$regex", regex)
 	}
 
-	andFilter := pulp.NewFilter("$and")
-	andFilter.AddExpression("filename", "$regex", "node")
+	subAndFilter := pulp.NewFilter()
+	subAndFilter.Operator = "$and"
+	subAndFilter.AddExpression("filename", "$regex", "node")
 
-	orFilter.AddSubFilter(andFilter)
+	subOrFilter := pulp.NewFilter()
+	subOrFilter.Operator = "$or"
+	subOrFilter.AddExpression("filename", "$regex", "nonono")
+
+	SecondSubOrFilter := pulp.NewFilter()
+	SecondSubOrFilter.Operator = "$or"
+	SecondSubOrFilter.AddExpression("filename", "$regex", "wrong")
+
+	orFilter.AddSubFilter(subAndFilter)
+	orFilter.AddSubFilter(subOrFilter)
+	orFilter.AddSubFilter(SecondSubOrFilter)
 
 	criteria := pulp.NewUnitAssociationCriteria()
 	criteria.AddFilter(orFilter)

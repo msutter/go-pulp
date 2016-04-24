@@ -123,10 +123,8 @@ func (f *Filter) AddExpression(field string, selector string, value string) {
 	f.Expressions = append(f.Expressions, expression)
 }
 
-func NewFilter(operator string) (filter *Filter) {
-	filter = &Filter{
-		Operator: operator,
-	}
+func NewFilter() (filter *Filter) {
+	filter = &Filter{}
 	return
 }
 
@@ -135,18 +133,30 @@ func (f *Filter) AddSubFilter(filter *Filter) {
 }
 
 func (f *Filter) GetMap() (filterMap map[string]interface{}) {
-	operators := []map[string]interface{}{}
+	expressions := []map[string]interface{}{}
+	expression_map := map[string]interface{}{}
+	subFilters := []map[string]interface{}{}
 
 	for _, exp := range f.Expressions {
-		operators = append(operators, exp.GetMap())
+		expressions = append(expressions, exp.GetMap())
+		expression_map[exp.UnitField] = map[string]string{
+			exp.Selector: exp.Value,
+		}
 	}
 
 	for _, subFilter := range f.SubFilters {
-		operators = append(operators, subFilter.GetMap())
+		subFilters = append(subFilters, subFilter.GetMap())
 	}
 
 	filterMap = map[string]interface{}{}
-	filterMap[f.Operator] = operators
+
+	if f.Operator != "" {
+		operators := []map[string]interface{}{}
+		operators = append(expressions, subFilters...)
+		filterMap[f.Operator] = operators
+	} else {
+		filterMap = expression_map
+	}
 
 	return
 }

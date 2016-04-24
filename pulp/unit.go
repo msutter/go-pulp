@@ -54,9 +54,12 @@ type GetUnitOptions struct {
 
 func (s *UnitsService) GetUnitByTaskResult(result *Result) ([]*Unit, *Response, error) {
 
-	orFilter := NewFilter("$or")
+	orFilter := NewFilter()
+	orFilter.Operator = "$or"
 	for _, resultUnit := range result.ResultUnits {
-		andFilter := NewFilter("$and")
+
+		andFilter := NewFilter()
+		andFilter.Operator = "$and"
 
 		andFilter.AddExpression("name", "$regex", fmt.Sprintf("^%s$", resultUnit.UnitKey.Name))
 		andFilter.AddExpression("version", "$regex", fmt.Sprintf("^%s$", resultUnit.UnitKey.Version))
