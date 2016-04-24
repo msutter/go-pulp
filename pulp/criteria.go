@@ -136,13 +136,23 @@ func (f *Filter) AddSubFilter(filter *Filter) {
 
 func (f *Filter) GetMap() (filterMap map[string]interface{}) {
 	expressions := []map[string]map[string]string{}
+	subFilters := []map[string]interface{}{}
+
 	for _, exp := range f.Expressions {
 		expressions = append(expressions, exp.GetMap())
 	}
-	filterMap = map[string]interface{}{
-		f.Operator: expressions,
+
+	for _, subFilter := range f.SubFilters {
+		subFilters = append(subFilters, subFilter.GetMap())
 	}
 
+	filterMap = map[string]interface{}{}
+	if len(expressions) > 0 {
+		filterMap[f.Operator] = expressions
+	}
+	if len(f.SubFilters) > 0 {
+		filterMap[f.Operator] = subFilters
+	}
 	return
 }
 
