@@ -12,7 +12,7 @@ import (
 func main() {
 	apiUser := "admin"
 	apiPasswd := "admin"
-	apiEndpoint := "pulp-lab-11.test"
+	apiEndpoint := "pulp-lab-1.test"
 
 	DisableSsl := false
 	SkipSslVerify := true
@@ -45,7 +45,7 @@ func main() {
 	orFilter.Operator = "$or"
 	for _, fileName := range fileNames {
 		// only match exact filename
-		regex := fmt.Sprintf("^%s", fileName)
+		regex := fmt.Sprintf("^%s$", fileName)
 		orFilter.AddExpression("filename", "$regex", regex)
 	}
 
@@ -67,13 +67,6 @@ func main() {
 
 	criteria := pulp.NewUnitAssociationCriteria()
 	criteria.AddFilter(orFilter)
-	criteria.AddField("name")
-	criteria.AddField("version")
-	criteria.AddField("epoch")
-	criteria.AddField("release")
-	criteria.AddField("arch")
-	criteria.AddField("checksumtype")
-	criteria.AddField("checksum")
 
 	// check request body
 	jsonCriteria, err := json.Marshal(criteria)
@@ -96,9 +89,17 @@ func main() {
 			fmt.Printf("error: %v\n", task.Error.Description)
 		}
 
+		// find filenames for the results
+		// resultFilter := pulp.NewFilter()
 		if task.State == "finished" {
-			for _, resultUnit := range task.Result.ResultUnits {
-				fmt.Printf("rpm: %s\n", resultUnit.UnitKey)
+			fileNames, ubtrErr := client.Units.GetUnitFileNamesByTaskResult(task.Result)
+
+			if ubtrErr != nil {
+				fmt.Println(ubtrErr.Error())
+				log.Fatal(ubtrErr)
+			}
+			for _, fileName := range fileNames {
+				fmt.Printf("fileName: %v\n", fileName)
 			}
 		}
 		if task.State == "running" {
@@ -112,4 +113,33 @@ func main() {
 			log.Fatal(terr)
 		}
 	}
+	fmt.Printf("-------------------------------------- SEARCH -------------------------------------------\n")
+
+	name := "nodetree"
+	regex := fmt.Sprintf("^%s$", name)
+
+	searchCriteria := pulp.NewSearchCriteria()
+	resultFields := []string{
+		"name",
+		"version",
+		"arch",
+		"release",
+		"filename",
+		"repository_memberships",
+		"requires",
+	}
+	_ = resultFields
+	// searchCriteria.AddFields(resultFields)
+
+	// build query
+	searchFilter := pulp.NewFilter()
+	searchFilter.Operator = "$or"
+	searchFilter.AddExpression("name", "$regex", regex)
+	searchCriteria.AddFilter(searchFilter)
+
+	units, _, uerr := client.Units.SearchUnits("rpm", searchCriteria)
+	for _, unit := range units {
+		fmt.Printf("unit: %v\n", unit)
+	}
+
 }

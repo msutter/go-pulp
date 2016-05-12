@@ -17,7 +17,6 @@
 package pulp
 
 import (
-	"encoding/json"
 	"fmt"
 )
 
@@ -51,7 +50,7 @@ func (s *RepositoriesService) ListRepositories(opt *GetRepositoryOptions) ([]*Re
 	return r, resp, err
 }
 
-func (s *RepositoriesService) ListRepositoryUnits(repository string) ([]*Unit, *Response, error) {
+func (s *RepositoriesService) ListRepositoryUnits(repository string) ([]*ContentUnitAssociation, *Response, error) {
 	// set fields (must also be defined in the unit struct)
 	fields := []string{
 		"name",
@@ -129,8 +128,8 @@ func (s *RepositoriesService) CopyRepositoryUnits(
 		Criteria:         criteria,
 	}
 
-	jsonOpt, err := json.Marshal(opt)
-	fmt.Printf("JsonOpt: %s\n", jsonOpt)
+	// jsonOpt, err := json.Marshal(opt)
+	// fmt.Printf("JsonOpt: %s\n", jsonOpt)
 
 	req, err := s.client.NewRequest("POST", u, opt)
 	if err != nil {

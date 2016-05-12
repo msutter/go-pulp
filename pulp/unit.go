@@ -17,6 +17,7 @@
 package pulp
 
 import (
+	// "encoding/json"
 	"fmt"
 )
 
@@ -30,21 +31,47 @@ func (s *UnitsService) SetFields(fields []string) {
 }
 
 type Unit struct {
+	UnitId   string    `json:"_id"`
+	TypeId   string    `json:"_content_type_id"`
+	FileName string    `json:"filename"`
+	Name     string    `json:"name"`
+	Version  string    `json:"version"`
+	Release  string    `json:"release"`
+	Arch     string    `json:"arch"`
+	Requires []Require `json:"requires"`
+}
+
+type SearchUnit struct {
+	UnitId                string     `json:"_id"`
+	Name                  string     `json:"name"`
+	Version               string     `json:"version"`
+	Release               string     `json:"release"`
+	Arch                  string     `json:"arch"`
+	Epoch                 string     `json:"epoch"`
+	FileName              string     `json:"filename"`
+	Requires              []*Require `json:"requires"`
+	RepositoryMemberships []string   `json:"repository_memberships"`
+}
+
+type ContentUnitAssociation struct {
 	Id       string `json:"id"`
 	RepoId   string `json:"repo_id"`
 	TypeId   string `json:"unit_type_id"`
 	UnitId   string `json:"unit_id"`
 	Metadata struct {
-		Name     string    `json:"name"`
-		Version  string    `json:"version"`
-		FileName string    `json:"filename"`
-		Requires []Require `json:"requires"`
+		Name     string     `json:"name"`
+		Version  string     `json:"version"`
+		FileName string     `json:"filename"`
+		Requires []*Require `json:"requires"`
 	} `json:"metadata"`
 }
 
 type Require struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`
+	Release string `json:"release"`
+	Epoch   string `json:"epoch"`
+	Flags   string `json:"flags"`
 }
 
 //  Options
@@ -52,45 +79,64 @@ type GetUnitOptions struct {
 	*SearchCriteria `json:"criteria,omitempty"`
 }
 
-func (s *UnitsService) GetUnitByTaskResult(result *Result) ([]*Unit, *Response, error) {
-
-	orFilter := NewFilter()
-	orFilter.Operator = "$or"
-	for _, resultUnit := range result.ResultUnits {
-
-		andFilter := NewFilter()
-		andFilter.Operator = "$and"
-
-		andFilter.AddExpression("name", "$regex", fmt.Sprintf("^%s$", resultUnit.UnitKey.Name))
-		andFilter.AddExpression("version", "$regex", fmt.Sprintf("^%s$", resultUnit.UnitKey.Version))
-		andFilter.AddExpression("release", "$regex", fmt.Sprintf("^%s$", resultUnit.UnitKey.Release))
-		andFilter.AddExpression("arch", "$regex", fmt.Sprintf("^%s$", resultUnit.UnitKey.Arch))
-
-		orFilter.AddSubFilter(andFilter)
+func (s *UnitsService) GetUnitFileNamesByTaskResult(result *Result) (filenames []string, err error) {
+	var units []*Unit
+	units, _, err = s.GetUnitsByTaskResult(result, []string{"filename"})
+	for _, unit := range units {
+		filenames = append(filenames, unit.FileName)
 	}
+	return filenames, err
+}
 
-	criteria := NewSearchCriteria()
-	criteria.AddField("filename")
-	criteria.AddFilter(orFilter)
-
-	opt := GetUnitOptions{
-		SearchCriteria: criteria,
-	}
-
-	// url := fmt.Sprintf("content/units/%s/search/", resultUnit.TypeId)
-	url := fmt.Sprintf("content/units/%s/search/", "rpm")
-	req, err := s.client.NewRequest("POST", url, opt)
-	if err != nil {
-		return nil, nil, err
-	}
+func (s *UnitsService) GetUnitsByTaskResult(result *Result, fields []string) ([]*Unit, *Response, error) {
 
 	var u []*Unit
-	resp, err := s.client.Do(req, &u)
-	if err != nil {
-		return nil, resp, err
+	if len(result.ResultUnits) > 0 {
+		resultType := result.ResultUnits[0].TypeId
+		orFilter := NewFilter()
+		orFilter.Operator = "$or"
+		for _, resultUnit := range result.ResultUnits {
+
+			// Unit filter (no need for filter operator)
+			unitFilter := NewFilter()
+			unitFilter.AddExpression("name", "$regex", fmt.Sprintf("^%s$", resultUnit.UnitKey.Name))
+			unitFilter.AddExpression("version", "$regex", fmt.Sprintf("^%s$", resultUnit.UnitKey.Version))
+			unitFilter.AddExpression("release", "$regex", fmt.Sprintf("^%s$", resultUnit.UnitKey.Release))
+			unitFilter.AddExpression("arch", "$regex", fmt.Sprintf("^%s$", resultUnit.UnitKey.Arch))
+
+			orFilter.AddSubFilter(unitFilter)
+		}
+
+		criteria := NewSearchCriteria()
+		for _, field := range fields {
+			criteria.AddField(field)
+		}
+		criteria.AddFilter(orFilter)
+
+		opt := GetUnitOptions{
+			SearchCriteria: criteria,
+		}
+
+		// // check request body
+		// jsonSearchOpt, err := json.Marshal(opt)
+		// fmt.Printf("jsonSearchOpt: %s\n", jsonSearchOpt)
+
+		url := fmt.Sprintf("content/units/%s/search/", resultType)
+		req, err := s.client.NewRequest("POST", url, opt)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		resp, err := s.client.Do(req, &u)
+		if err != nil {
+			return nil, resp, err
+		}
+
+		return u, resp, err
+	} else {
+		return u, nil, nil
 	}
 
-	return u, resp, err
 }
 
 //  Options
@@ -98,7 +144,7 @@ type ListUnitsOptions struct {
 	*UnitAssociationCriteria `json:"criteria,omitempty"`
 }
 
-func (s *UnitsService) ListUnits(repository string) ([]*Unit, *Response, error) {
+func (s *UnitsService) ListUnits(repository string) ([]*ContentUnitAssociation, *Response, error) {
 	// units options
 
 	criteria := NewUnitAssociationCriteria()
@@ -114,7 +160,39 @@ func (s *UnitsService) ListUnits(repository string) ([]*Unit, *Response, error) 
 		return nil, nil, err
 	}
 
-	var u []*Unit
+	var u []*ContentUnitAssociation
+	resp, err := s.client.Do(req, &u)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return u, resp, err
+}
+
+//  Options
+type SearchUnitsOptions struct {
+	*SearchCriteria `json:"criteria,omitempty"`
+	IncludeRepos    bool `json:"include_repos,omitempty"`
+}
+
+func (s *UnitsService) SearchUnits(contentType string, criteria *SearchCriteria) ([]*SearchUnit, *Response, error) {
+
+	opt := SearchUnitsOptions{
+		SearchCriteria: criteria,
+		IncludeRepos:   true,
+	}
+
+	url := fmt.Sprintf("content/units/%s/search/", contentType)
+	req, err := s.client.NewRequest("POST", url, opt)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// check request body
+	// jsonSearchOpt, err := json.Marshal(opt)
+	// fmt.Printf("jsonSearchOpt: %s\n", jsonSearchOpt)
+
+	var u []*SearchUnit
 	resp, err := s.client.Do(req, &u)
 	if err != nil {
 		return nil, resp, err
