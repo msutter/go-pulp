@@ -39,6 +39,24 @@ func (s *TasksService) ListTasks() ([]*Task, *Response, error) {
 	return t, resp, err
 }
 
+func (s *TasksService) GetPublishTask(task string) (*PublishTask, *Response, error) {
+	u := fmt.Sprintf("tasks/%s/", task)
+
+	req, err := s.client.NewRequest("GET", u, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	t := new(PublishTask)
+	resp, err := s.client.Do(req, t)
+
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return t, resp, err
+}
+
 func (s *TasksService) GetTask(task string) (*Task, *Response, error) {
 	u := fmt.Sprintf("tasks/%s/", task)
 
@@ -49,6 +67,7 @@ func (s *TasksService) GetTask(task string) (*Task, *Response, error) {
 
 	t := new(Task)
 	resp, err := s.client.Do(req, t)
+
 	if err != nil {
 		return nil, resp, err
 	}
@@ -82,9 +101,10 @@ func (t *Task) Importer() (importer string) {
 }
 
 type ProgressReport struct {
-	// yum importer
-	YumImporter *Importer `json:"yum_importer"`
-	// docker importer
+	YumDistributors    []*Distributor `json:"yum_distributor"`
+	DockerDistributors []*Distributor `json:"docker_distributor"`
+
+	YumImporter    *Importer `json:"yum_importer"`
 	DockerImporter *Importer `json:"docker_importer"`
 }
 

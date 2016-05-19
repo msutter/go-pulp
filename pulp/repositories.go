@@ -105,6 +105,32 @@ func (s *RepositoriesService) SyncRepository(repository string) (*CallReport, *R
 	return cr, resp, err
 }
 
+type PublishRepositoryOptions struct {
+	DistributorId string `url:"id,omitempty" json:"id,omitempty"`
+}
+
+func (s *RepositoriesService) PublishRepository(repository string) (*CallReport, *Response, error) {
+	u := fmt.Sprintf("repositories/%s/actions/publish/", repository)
+
+	opt := &PublishRepositoryOptions{
+		DistributorId: "yum_distributor",
+	}
+
+	req, err := s.client.NewRequest("POST", u, opt)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	cr := new(CallReport)
+	resp, err := s.client.Do(req, &cr)
+
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return cr, resp, err
+}
+
 type CopyRepositoryUnitsOptions struct {
 	SourceRepository string                   `json:"source_repo_id,omitempty"`
 	Criteria         *UnitAssociationCriteria `json:"criteria,omitempty"`
