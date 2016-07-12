@@ -36,9 +36,10 @@ import (
 )
 
 const (
-	libraryVersion = "0.1"
-	apiVersion     = "v2"
-	userAgent      = "go-pulp/" + libraryVersion
+	libraryVersion             = "0.1"
+	apiVersion                 = "v2"
+	userAgent                  = "go-pulp/" + libraryVersion
+	DefaultMaxIdleConnsPerHost = 2
 )
 
 // Client type definition
