@@ -90,7 +90,7 @@ func NewClient(host string, User string, Passwd string, DisableSsl bool, Insecur
 	}
 
 	// set default timeout on 2 seconds
-	client.SetTimeout(2000)
+	//	client.SetTimeout(2000)
 
 	if err := client.SetHost(host); err != nil {
 		return nil, err
