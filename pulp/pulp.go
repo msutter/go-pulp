@@ -70,6 +70,7 @@ func NewClient(host string, User string, Passwd string, DisableSsl bool, Insecur
 
 	transport := &http.Transport{
 		TLSClientConfig: ssl,
+		MaxIdleConnsPerHost: DefaultMaxIdleConnsPerHost,
 	}
 
 	if httpClient == nil {
