@@ -17,7 +17,7 @@
 package pulp
 
 import (
-	// "encoding/json"
+	"encoding/json"
 	"fmt"
 )
 
@@ -189,14 +189,19 @@ func (s *UnitsService) SearchUnits(contentType string, criteria *SearchCriteria)
 	}
 
 	// check request body
-	// jsonSearchOpt, err := json.Marshal(opt)
-	// fmt.Printf("jsonSearchOpt: %s\n", jsonSearchOpt)
+	jsonSearchOpt, err := json.Marshal(opt)
+	fmt.Printf("jsonSearchOpt: %s\n", jsonSearchOpt)
 
 	var u []*SearchUnit
+
+	fmt.Printf("\nDebug: Before request\n")
 	resp, err := s.client.Do(req, &u)
 	if err != nil {
+		fmt.Printf("\nDebug: Error by request\n")
+		fmt.Printf("\n%v\n",err.Error())
 		return nil, resp, err
 	}
+	fmt.Printf("\nDebug: After request\n")
 
 	return u, resp, err
 }
